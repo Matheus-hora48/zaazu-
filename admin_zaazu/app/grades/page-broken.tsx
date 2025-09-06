@@ -16,12 +16,13 @@ import {
   PowerOff,
   Trash2,
   Plus,
+  Grid3x3,
 } from "lucide-react";
-import { HomeGrid, GridTag, ContentType } from "@/lib/types";
+import { HomeGrid, GridTag } from "@/lib/types";
 import { gridService } from "@/lib/grid-service";
 import { GridRowManager } from "@/components/modals/grid-row-manager";
 
-export default function GridsContent() {
+function GridsContent() {
   const [grids, setGrids] = useState<HomeGrid[]>([]);
   const [loading, setLoading] = useState(true);
   const [showGridManager, setShowGridManager] = useState(false);
@@ -557,14 +558,6 @@ function CreateGridModal({ isOpen, onClose, onSubmit }: CreateGridModalProps) {
               <p className="text-xs text-gray-500 mt-1">
                 Cada categoria pode ter apenas uma grade ativa por vez. A lista inicial poderá conter vídeos, jogos e atividades misturados.
               </p>
-            </div>
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                required
-              >
-                <option value="video">� Vídeos Educativos para Crianças</option>
-                <option value="activity">� Atividades e Exercícios Infantis</option>
-                <option value="game">🎮 Jogos Educativos Divertidos</option>
-              </select>
             </div>
 
             <div>
