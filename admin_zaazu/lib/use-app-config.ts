@@ -92,13 +92,13 @@ export const useAppConfig = () => {
   const loadConfigurations = async () => {
     try {
       setLoading(true);
-      const configDoc = await getDoc(doc(db, "settings", "general"));
+      const configDoc = await getDoc(doc(db!, "settings", "general"));
       if (configDoc.exists()) {
         const data = configDoc.data();
         setConfig((prev) => ({ ...prev, ...data }));
       }
 
-      const statusDoc = await getDoc(doc(db, "system", "status"));
+      const statusDoc = await getDoc(doc(db!, "system", "status"));
       if (statusDoc.exists()) {
         const data = statusDoc.data();
         setSystemStatus((prev) => ({
@@ -127,7 +127,7 @@ export const useAppConfig = () => {
       // Validar configurações antes de salvar
       validateConfig(config);
 
-      await setDoc(doc(db, "settings", "general"), {
+      await setDoc(doc(db!, "settings", "general"), {
         ...config,
         updatedAt: serverTimestamp(),
       });

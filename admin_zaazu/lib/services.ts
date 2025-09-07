@@ -142,7 +142,7 @@ export const videoService = {
               thumbnail: video.thumbnail,
               tag: video.tag,
               category: video.category,
-              ageGroup: video.ageGroup,
+              minAge: video.minAge,
             });
           }
 

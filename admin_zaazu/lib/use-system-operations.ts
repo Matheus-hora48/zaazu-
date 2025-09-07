@@ -50,7 +50,7 @@ export const useSystemOperations = () => {
 
       for (const collectionName of collections) {
         try {
-          const snapshot = await getDocs(collection(db, collectionName));
+          const snapshot = await getDocs(collection(db!, collectionName));
           const collectionData = snapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
@@ -76,7 +76,7 @@ export const useSystemOperations = () => {
         admin: adminEmail || "admin@zaazu.app",
       };
 
-      await addDoc(collection(db, "backups"), backupDoc);
+      await addDoc(collection(db!, "backups"), backupDoc);
 
       // Salvar automaticamente no Google Drive se configurado
       let googleDriveResult = null;
@@ -91,7 +91,7 @@ export const useSystemOperations = () => {
 
       // Atualizar status do sistema
       const newBackupTime = new Date();
-      await setDoc(doc(db, "system", "status"), {
+      await setDoc(doc(db!, "system", "status"), {
         lastBackup: serverTimestamp(),
         lastCacheCleanup: systemStatus.lastCacheCleanup,
         cdnStatus: systemStatus.cdnStatus,
@@ -156,7 +156,7 @@ export const useSystemOperations = () => {
       }
 
       // Atualizar timestamp no Firebase
-      await setDoc(doc(db, "system", "status"), {
+      await setDoc(doc(db!, "system", "status"), {
         lastBackup: systemStatus.lastBackup,
         lastCacheCleanup: serverTimestamp(),
         cdnStatus: systemStatus.cdnStatus,
@@ -204,7 +204,7 @@ export const useSystemOperations = () => {
       // Simular configuração de CDN
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      await setDoc(doc(db, "system", "status"), {
+      await setDoc(doc(db!, "system", "status"), {
         lastBackup: systemStatus.lastBackup,
         lastCacheCleanup: systemStatus.lastCacheCleanup,
         cdnStatus: newStatus,
@@ -241,7 +241,7 @@ export const useSystemOperations = () => {
 
       for (const collectionName of collections) {
         try {
-          const snapshot = await getDocs(collection(db, collectionName));
+          const snapshot = await getDocs(collection(db!, collectionName));
           stats[collectionName] = snapshot.size;
         } catch (error) {
           console.warn(
@@ -271,7 +271,7 @@ export const useSystemOperations = () => {
 
       // Verificar conectividade com o banco
       try {
-        await getDocs(collection(db, "settings"));
+        await getDocs(collection(db!, "settings"));
         checks.database = true;
       } catch {
         checks.database = false;
@@ -279,7 +279,7 @@ export const useSystemOperations = () => {
 
       // Verificar logs
       try {
-        await getDocs(collection(db, "system", "logs", "admin_actions"));
+        await getDocs(collection(db!, "system", "logs", "admin_actions"));
         checks.logs = true;
       } catch {
         checks.logs = false;

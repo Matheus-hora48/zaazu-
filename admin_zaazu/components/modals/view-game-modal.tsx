@@ -129,7 +129,7 @@ export function ViewGameModal({ isOpen, onClose, game }: ViewGameModalProps) {
                 <label className="text-sm font-medium text-gray-800">
                   Faixa Etária
                 </label>
-                <p className="text-gray-900">{game.ageGroup}</p>
+                <p className="text-gray-900">{game.minAge} anos+</p>
               </div>
             </div>
 

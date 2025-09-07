@@ -38,6 +38,12 @@ export function ResetPasswordModal({
     setError("");
 
     try {
+      if (!auth) {
+        setError("Firebase Auth não está configurado.");
+        setLoading(false);
+        return;
+      }
+
       await sendPasswordResetEmail(auth, email);
 
       // Log do reset de senha bem-sucedido

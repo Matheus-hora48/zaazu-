@@ -59,6 +59,19 @@ export function AddUserModal({
     }
 
     try {
+      // Verificar se auth e db estão configurados
+      if (!auth) {
+        setError("Firebase Auth não está configurado.");
+        setLoading(false);
+        return;
+      }
+
+      if (!db) {
+        setError("Firebase Firestore não está configurado.");
+        setLoading(false);
+        return;
+      }
+
       // Criar usuário no Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,

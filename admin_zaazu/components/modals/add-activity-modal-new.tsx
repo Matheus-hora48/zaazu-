@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { activityService } from "@/lib/services";
+import { ContentTag } from "@/lib/types";
 import { X, Upload, BookOpen, Plus, Trash2, Check } from "lucide-react";
 import { TagsInput } from "@/components/ui/tags-input";
 
@@ -50,8 +51,17 @@ export function AddActivityModal({
       const validObjectives = formData.objectives.filter((obj) => obj.trim());
 
       const activityData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        age: formData.age,
+        category: formData.category,
+        difficulty: formData.difficulty,
+        minAge: parseInt(formData.age) || 2, // Converter age para minAge
+        tag: "educativo" as ContentTag, // Usar tag padrão ou implementar seletor
+        instructionVideo: formData.instructionVideo,
         objectives: validObjectives,
+        materials: [], // Array vazio por padrão ou implementar campo
+        thumbnail: formData.thumbnail,
         completions: 0,
         isActive: true,
       };

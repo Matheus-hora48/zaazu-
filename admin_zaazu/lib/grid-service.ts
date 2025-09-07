@@ -11,6 +11,7 @@ import {
   query,
   where,
   Timestamp,
+  Firestore,
 } from "firebase/firestore";
 import { GridRow, HomeGrid, GridItem } from "./types";
 
@@ -18,11 +19,19 @@ class GridService {
   private readonly gridsCollection = "grids";
   private readonly rowsCollection = "gridRows";
 
+  private getDb(): Firestore {
+    if (!db) {
+      throw new Error("Firebase Firestore não está configurado.");
+    }
+    return db;
+  }
+
   // Grid CRUD Operations
   async createGrid(
     gridData: Omit<HomeGrid, "id" | "createdAt" | "updatedAt">
   ): Promise<string> {
-    const docRef = await addDoc(collection(db, this.gridsCollection), {
+    const database = this.getDb();
+    const docRef = await addDoc(collection(database, this.gridsCollection), {
       ...gridData,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
@@ -32,7 +41,7 @@ class GridService {
 
   async getGrids(): Promise<HomeGrid[]> {
     const querySnapshot = await getDocs(
-      query(collection(db, this.gridsCollection), orderBy("createdAt", "desc"))
+      query(collection(this.getDb(), this.gridsCollection), orderBy("createdAt", "desc"))
     );
 
     const grids: HomeGrid[] = [];
@@ -47,7 +56,7 @@ class GridService {
   }
 
   async getGrid(id: string): Promise<HomeGrid | null> {
-    const docSnap = await getDoc(doc(db, this.gridsCollection, id));
+    const docSnap = await getDoc(doc(this.getDb(), this.gridsCollection, id));
     if (!docSnap.exists()) return null;
 
     const gridData = { id: docSnap.id, ...docSnap.data() } as HomeGrid;
@@ -57,7 +66,7 @@ class GridService {
   }
 
   async updateGrid(id: string, updates: Partial<HomeGrid>): Promise<void> {
-    await updateDoc(doc(db, this.gridsCollection, id), {
+    await updateDoc(doc(this.getDb(), this.gridsCollection, id), {
       ...updates,
       updatedAt: Timestamp.now(),
     });
@@ -70,7 +79,7 @@ class GridService {
       await this.deleteGridRow(row.id);
     }
 
-    await deleteDoc(doc(db, this.gridsCollection, id));
+    await deleteDoc(doc(this.getDb(), this.gridsCollection, id));
   }
 
   // Grid Row CRUD Operations
@@ -78,7 +87,7 @@ class GridService {
     gridId: string,
     rowData: Omit<GridRow, "id" | "createdAt" | "updatedAt">
   ): Promise<string> {
-    const docRef = await addDoc(collection(db, this.rowsCollection), {
+    const docRef = await addDoc(collection(this.getDb(), this.rowsCollection), {
       ...rowData,
       gridId,
       createdAt: Timestamp.now(),
@@ -90,7 +99,7 @@ class GridService {
   async getGridRows(gridId: string): Promise<GridRow[]> {
     const querySnapshot = await getDocs(
       query(
-        collection(db, this.rowsCollection),
+        collection(this.getDb(), this.rowsCollection),
         where("gridId", "==", gridId),
         orderBy("order", "asc")
       )
@@ -103,19 +112,19 @@ class GridService {
   }
 
   async updateGridRow(id: string, updates: Partial<GridRow>): Promise<void> {
-    await updateDoc(doc(db, this.rowsCollection, id), {
+    await updateDoc(doc(this.getDb(), this.rowsCollection, id), {
       ...updates,
       updatedAt: Timestamp.now(),
     });
   }
 
   async deleteGridRow(id: string): Promise<void> {
-    await deleteDoc(doc(db, this.rowsCollection, id));
+    await deleteDoc(doc(this.getDb(), this.rowsCollection, id));
   }
 
   // Grid Item Operations
   async addItemToRow(rowId: string, item: Omit<GridItem, "id">): Promise<void> {
-    const rowDoc = await getDoc(doc(db, this.rowsCollection, rowId));
+    const rowDoc = await getDoc(doc(this.getDb(), this.rowsCollection, rowId));
     if (!rowDoc.exists()) throw new Error("Row not found");
 
     const rowData = rowDoc.data() as GridRow;
@@ -124,14 +133,14 @@ class GridService {
       { ...item, id: crypto.randomUUID() },
     ];
 
-    await updateDoc(doc(db, this.rowsCollection, rowId), {
+    await updateDoc(doc(this.getDb(), this.rowsCollection, rowId), {
       items: newItems,
       updatedAt: Timestamp.now(),
     });
   }
 
   async removeItemFromRow(rowId: string, itemId: string): Promise<void> {
-    const rowDoc = await getDoc(doc(db, this.rowsCollection, rowId));
+    const rowDoc = await getDoc(doc(this.getDb(), this.rowsCollection, rowId));
     if (!rowDoc.exists()) throw new Error("Row not found");
 
     const rowData = rowDoc.data() as GridRow;
@@ -139,21 +148,21 @@ class GridService {
       (item) => item.id !== itemId
     );
 
-    await updateDoc(doc(db, this.rowsCollection, rowId), {
+    await updateDoc(doc(this.getDb(), this.rowsCollection, rowId), {
       items: filteredItems,
       updatedAt: Timestamp.now(),
     });
   }
 
   async reorderRowItems(rowId: string, items: GridItem[]): Promise<void> {
-    await updateDoc(doc(db, this.rowsCollection, rowId), {
+    await updateDoc(doc(this.getDb(), this.rowsCollection, rowId), {
       items: items.map((item, index) => ({ ...item, order: index })),
       updatedAt: Timestamp.now(),
     });
   }
 
   async randomizeRowItems(rowId: string): Promise<void> {
-    const rowDoc = await getDoc(doc(db, this.rowsCollection, rowId));
+    const rowDoc = await getDoc(doc(this.getDb(), this.rowsCollection, rowId));
     if (!rowDoc.exists()) throw new Error("Row not found");
 
     const rowData = rowDoc.data() as GridRow;
@@ -167,7 +176,7 @@ class GridService {
   // Grid Rows Reorder
   async reorderGridRows(gridId: string, rowIds: string[]): Promise<void> {
     const promises = rowIds.map((rowId, index) =>
-      updateDoc(doc(db, this.rowsCollection, rowId), {
+      updateDoc(doc(this.getDb(), this.rowsCollection, rowId), {
         order: index,
         updatedAt: Timestamp.now(),
       })
@@ -180,7 +189,7 @@ class GridService {
   async getActiveGrid(): Promise<HomeGrid | null> {
     const querySnapshot = await getDocs(
       query(
-        collection(db, this.gridsCollection),
+        collection(this.getDb(), this.gridsCollection),
         where("isActive", "==", true),
         orderBy("updatedAt", "desc")
       )

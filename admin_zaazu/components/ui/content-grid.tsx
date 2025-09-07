@@ -67,10 +67,9 @@ export function ContentGrid({
         (item) =>
           item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (item.tags &&
-            item.tags.some((tag) =>
-              tag.toLowerCase().includes(searchTerm.toLowerCase())
-            ))
+          (item.tag &&
+            item.tag.toLowerCase().includes(searchTerm.toLowerCase())
+          )
       );
     }
 
@@ -81,7 +80,7 @@ export function ContentGrid({
 
     // Filter by age group
     if (selectedAgeGroup) {
-      filtered = filtered.filter((item) => item.ageGroup === selectedAgeGroup);
+      filtered = filtered.filter((item) => item.minAge === parseInt(selectedAgeGroup));
     }
 
     // Filter only active content
@@ -104,7 +103,7 @@ export function ContentGrid({
   };
 
   const getUniqueAgeGroups = () => {
-    const ageGroups = content.map((item) => item.ageGroup).filter(Boolean);
+    const ageGroups = content.map((item) => item.minAge?.toString()).filter(Boolean);
     return [...new Set(ageGroups)].sort();
   };
 
@@ -268,21 +267,13 @@ export function ContentGrid({
               </h4>
               <p className="text-xs text-gray-500 truncate">{item.category}</p>
 
-              {item.tags && item.tags.length > 0 && (
+              {item.tag && (
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {item.tags.slice(0, 2).map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-1 py-0.5 bg-gray-100 text-gray-600 text-xs rounded"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                  {item.tags.length > 2 && (
-                    <span className="text-xs text-gray-400">
-                      +{item.tags.length - 2}
-                    </span>
-                  )}
+                  <span
+                    className="px-1 py-0.5 bg-gray-100 text-gray-600 text-xs rounded"
+                  >
+                    {item.tag}
+                  </span>
                 </div>
               )}
             </div>

@@ -531,10 +531,12 @@ export function GridRowManager({
                   </h4>
                   <ContentGrid
                     contentType={selectedContentType}
-                    onSelectContent={(contentId) =>
+                    selectedItems={[]}
+                    onItemSelect={(contentId) =>
                       handleAddContentToRow(contentId, selectedContentType)
                     }
-                    allContent={allContent}
+                    onItemDeselect={() => {}}
+                    getAllContent={async () => allContent}
                   />
                 </div>
 
@@ -548,7 +550,10 @@ export function GridRowManager({
                       items={editingRow.items}
                       onReorder={handleReorderRowItems}
                       onRemove={handleRemoveContentFromRow}
-                      allContent={allContent}
+                      onRandomize={() => {}}
+                      getContentById={(id: string, type: string) => 
+                        getContentById(id, type as ContentType)
+                      }
                     />
                   ) : (
                     <div className="text-gray-500 text-center py-8">

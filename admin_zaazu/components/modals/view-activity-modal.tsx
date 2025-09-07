@@ -125,8 +125,8 @@ export function ViewActivityModal({
                 <span className="font-bold text-purple-800">Faixa Etária</span>
               </div>
               <p className="text-purple-700">
-                {activity.ageGroup
-                  ? `${activity.ageGroup} anos`
+                {activity.age
+                  ? `${activity.age}`
                   : "Não definida"}
               </p>
               {activity.age && (

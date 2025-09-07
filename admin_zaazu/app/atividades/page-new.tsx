@@ -77,7 +77,7 @@ export default function AtividadesPage() {
       activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       activity.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       activity.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activity.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+      activity.tag?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategory = !categoryFilter || activity.category === categoryFilter;
     const matchesDifficulty = !difficultyFilter || activity.difficulty === difficultyFilter;
@@ -340,7 +340,7 @@ export default function AtividadesPage() {
                       </div>
                       <div className="flex items-center text-gray-500">
                         <Users className="h-3 w-3 mr-1" />
-                        {activity.ageGroup ? `${activity.ageGroup} anos` : "Idade livre"}
+                        {activity.minAge ? `${activity.minAge}+ anos` : "Idade livre"}
                       </div>
                       <div className="flex items-center text-gray-500">
                         <Target className="h-3 w-3 mr-1" />
@@ -352,22 +352,14 @@ export default function AtividadesPage() {
                       </div>
                     </div>
 
-                    {/* Tags */}
-                    {activity.tags && activity.tags.length > 0 && (
+                    {/* Tag */}
+                    {activity.tag && (
                       <div className="flex flex-wrap gap-1">
-                        {activity.tags.slice(0, 3).map((tag, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {activity.tags.length > 3 && (
-                          <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
-                            +{activity.tags.length - 3}
-                          </span>
-                        )}
+                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                          {activity.tag === "entretenimento" && "🎉 Entretenimento"}
+                          {activity.tag === "atividade" && "🏃‍♀️ Atividade"}
+                          {activity.tag === "educativo" && "📚 Educativo"}
+                        </span>
                       </div>
                     )}
 

@@ -231,7 +231,7 @@ export function ActivityCard({
         >
           <div className="flex items-center text-gray-500">
             <Users className="h-3 w-3 mr-1" />
-            {activity.ageGroup ? `${activity.ageGroup} anos` : "Idade livre"}
+            {activity.age ? `${activity.age}` : activity.minAge ? `${activity.minAge}+ anos` : "Idade livre"}
           </div>
           <div className="flex items-center text-gray-500">
             <Target className="h-3 w-3 mr-1" />

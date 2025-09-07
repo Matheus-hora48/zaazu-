@@ -47,7 +47,10 @@ export interface AppLogData {
  */
 export const logAdminAction = async (logData: AdminLogData): Promise<void> => {
   try {
-    await addDoc(collection(db, "system", "logs", "admin_actions"), {
+    if (!db) {
+      throw new Error("Firebase Firestore não está configurado.");
+    }
+    await addDoc(collection(db!, "system", "logs", "admin_actions"), {
       ...logData,
       level: logData.level || "info",
       timestamp: serverTimestamp(),
@@ -62,7 +65,7 @@ export const logAdminAction = async (logData: AdminLogData): Promise<void> => {
  */
 export const logAppAction = async (logData: AppLogData): Promise<void> => {
   try {
-    await addDoc(collection(db, "system", "logs", "app_actions"), {
+    await addDoc(collection(db!, "system", "logs", "app_actions"), {
       ...logData,
       level: logData.level || "info",
       timestamp: serverTimestamp(),
@@ -82,7 +85,7 @@ export const loadSystemLogs = async (
     // Buscar logs de admin
     const adminLogsSnapshot = await getDocs(
       query(
-        collection(db, "system", "logs", "admin_actions"),
+        collection(db!, "system", "logs", "admin_actions"),
         orderBy("timestamp", "desc"),
         limit(limitCount)
       )
@@ -91,7 +94,7 @@ export const loadSystemLogs = async (
     // Buscar logs do app
     const appLogsSnapshot = await getDocs(
       query(
-        collection(db, "system", "logs", "app_actions"),
+        collection(db!, "system", "logs", "app_actions"),
         orderBy("timestamp", "desc"),
         limit(limitCount)
       )
@@ -240,7 +243,7 @@ export const cleanOldLogs = async (daysOld: number = 30): Promise<number> => {
 
     // Buscar logs antigos de admin
     const adminQuery = query(
-      collection(db, "system", "logs", "admin_actions"),
+      collection(db!, "system", "logs", "admin_actions"),
       where("timestamp", "<", cutoffDate),
       limit(100)
     );
@@ -248,7 +251,7 @@ export const cleanOldLogs = async (daysOld: number = 30): Promise<number> => {
 
     // Buscar logs antigos de app
     const appQuery = query(
-      collection(db, "system", "logs", "app_actions"),
+      collection(db!, "system", "logs", "app_actions"),
       where("timestamp", "<", cutoffDate),
       limit(100)
     );
@@ -258,12 +261,12 @@ export const cleanOldLogs = async (daysOld: number = 30): Promise<number> => {
     const deletePromises: Promise<void>[] = [];
     adminSnapshot.docs.forEach((docRef) => {
       deletePromises.push(
-        deleteDoc(doc(db, "system", "logs", "admin_actions", docRef.id))
+        deleteDoc(doc(db!, "system", "logs", "admin_actions", docRef.id))
       );
     });
     appSnapshot.docs.forEach((docRef) => {
       deletePromises.push(
-        deleteDoc(doc(db, "system", "logs", "app_actions", docRef.id))
+        deleteDoc(doc(db!, "system", "logs", "app_actions", docRef.id))
       );
     });
 

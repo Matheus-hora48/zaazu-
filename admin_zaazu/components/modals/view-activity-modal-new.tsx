@@ -121,11 +121,11 @@ export function ViewActivityModal({
                 <span className="font-bold text-purple-800">Faixa Etária</span>
               </div>
               <p className="text-purple-700">
-                {activity.ageGroup ? `${activity.ageGroup} anos` : "Não definida"}
+                {activity.age ? `${activity.age}` : "Não definida"}
               </p>
-              {activity.age && (
+              {activity.minAge && (
                 <p className="text-sm text-purple-600 mt-1">
-                  Específico: {activity.age}
+                  Idade mínima: {activity.minAge} anos
                 </p>
               )}
             </div>
@@ -197,22 +197,19 @@ export function ViewActivityModal({
             </div>
           )}
 
-          {/* Tags */}
-          {activity.tags && activity.tags.length > 0 && (
+          {/* Tag */}
+          {activity.tag && (
             <div>
               <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
                 <Tag className="h-5 w-5 mr-2" />
-                Tags
+                Tag
               </h3>
               <div className="flex flex-wrap gap-2">
-                {activity.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full border"
-                  >
-                    {tag}
-                  </span>
-                ))}
+                <span
+                  className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full border"
+                >
+                  {activity.tag}
+                </span>
               </div>
             </div>
           )}

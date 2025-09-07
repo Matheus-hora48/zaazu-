@@ -11,9 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { activityService } from "@/lib/services";
-import { Activity } from "@/lib/types";
+import { Activity, ContentTag } from "@/lib/types";
 import { X, Upload, BookOpen, Plus, Trash2, Check } from "lucide-react";
-import { TagsInput } from "@/components/ui/tags-input";
 
 interface EditActivityModalProps {
   isOpen: boolean;
@@ -36,8 +35,6 @@ export function EditActivityModal({
     age: "",
     category: "",
     difficulty: "easy" as "easy" | "medium" | "hard",
-    ageGroup: "",
-    tags: [] as string[],
     instructionVideo: "",
     objectives: [""] as string[],
     thumbnail: "",
@@ -51,8 +48,6 @@ export function EditActivityModal({
         age: activity.age || "",
         category: activity.category || "",
         difficulty: activity.difficulty || "easy",
-        ageGroup: activity.ageGroup || "",
-        tags: activity.tags || [],
         instructionVideo: activity.instructionVideo || "",
         objectives: activity.objectives?.length ? activity.objectives : [""],
         thumbnail: activity.thumbnail || "",
@@ -71,8 +66,17 @@ export function EditActivityModal({
       const validObjectives = formData.objectives.filter((obj) => obj.trim());
 
       const activityData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        age: formData.age,
+        category: formData.category,
+        difficulty: formData.difficulty,
+        minAge: activity.minAge || parseInt(formData.age) || 2,
+        tag: activity.tag || "educativo" as ContentTag,
+        instructionVideo: formData.instructionVideo,
         objectives: validObjectives,
+        materials: activity.materials || [],
+        thumbnail: formData.thumbnail,
         completions: activity.completions || 0,
         isActive: activity.isActive ?? true,
       };
@@ -229,29 +233,6 @@ export function EditActivityModal({
 
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-2">
-                  Faixa Etária *
-                </label>
-                <select
-                  value={formData.ageGroup}
-                  onChange={(e) =>
-                    setFormData({ ...formData, ageGroup: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                  required
-                >
-                  <option value="">Selecione a faixa etária</option>
-                  <option value="3-4">3-4 anos</option>
-                  <option value="4-5">4-5 anos</option>
-                  <option value="5-6">5-6 anos</option>
-                  <option value="6-7">6-7 anos</option>
-                  <option value="7-8">7-8 anos</option>
-                  <option value="8-10">8-10 anos</option>
-                  <option value="10+">10+ anos</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">
                   Dificuldade *
                 </label>
                 <select
@@ -332,18 +313,6 @@ export function EditActivityModal({
                   Adicionar Objetivo
                 </Button>
               </div>
-            </div>
-
-            {/* Tags */}
-            <div>
-              <label className="block text-sm font-bold text-gray-800 mb-2">
-                Tags
-              </label>
-              <TagsInput
-                tags={formData.tags}
-                onChange={(tags) => setFormData({ ...formData, tags })}
-                placeholder="Adicione tags para categorizar a atividade"
-              />
             </div>
 
             {/* Thumbnail */}
