@@ -4,14 +4,14 @@ import React, { useState, useRef, DragEvent } from "react";
 import Image from "next/image";
 import { GripVertical, X, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AnyContent, GridItem } from "@/lib/types";
+import { AnyContent, GridItem, VideoSeries } from "@/lib/types";
 
 interface DragDropListProps {
   items: GridItem[];
   onReorder: (items: GridItem[]) => void;
   onRemove: (itemId: string) => void;
   onRandomize: () => void;
-  getContentById: (id: string, type: string) => AnyContent | null;
+  getContentById: (id: string, type: string, isSeries?: boolean) => AnyContent | VideoSeries | null;
   maxItems?: number;
 }
 
@@ -91,13 +91,20 @@ export function DragDropList({
   };
 
   const getContentThumbnail = (item: GridItem): string => {
-    const content = getContentById(item.contentId, item.contentType);
+    const content = getContentById(item.contentId, item.contentType, item.isSeries);
     return content?.thumbnail || "/placeholder-image.jpg";
   };
 
   const getContentTitle = (item: GridItem): string => {
-    const content = getContentById(item.contentId, item.contentType);
-    return content?.title || "Conteúdo não encontrado";
+    const content = getContentById(item.contentId, item.contentType, item.isSeries);
+    if (!content) return "Conteúdo não encontrado";
+    
+    // VideoSeries tem seriesTitle ao invés de title
+    if ('seriesTitle' in content) {
+      return content.seriesTitle || "Sem título";
+    }
+    
+    return content.title || "Sem título";
   };
 
   const getContentTypeIcon = (type: string) => {

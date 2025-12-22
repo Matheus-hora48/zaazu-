@@ -37,6 +37,7 @@ import {
   GridItem,
   ContentType,
   AnyContent,
+  VideoSeries,
 } from "@/lib/types";
 import { gridService } from "@/lib/grid-service";
 import { videoService, gameService, activityService } from "@/lib/services";
@@ -91,6 +92,7 @@ function SortableRow({ row, children, onRenderContent }: SortableRowProps) {
                   {row.contentType && (
                     <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
                       {row.contentType === "video" && "🎥 Vídeos"}
+                      {row.contentType === "series" && "📺 Séries"}
                       {row.contentType === "game" && "🎮 Jogos"}
                       {row.contentType === "activity" && "📚 Atividades"}
                     </span>
@@ -120,7 +122,7 @@ function SortableRow({ row, children, onRenderContent }: SortableRowProps) {
 // Sortable Item Component
 interface SortableItemProps {
   item: GridItem;
-  content: AnyContent;
+  content: AnyContent | VideoSeries;
   onRemove: () => void;
 }
 
@@ -139,6 +141,15 @@ function SortableItem({ item, content, onRemove }: SortableItemProps) {
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  // Determinar título e categoria baseado no tipo de conteúdo
+  const isSeries = item.contentType === "series" || item.isSeries;
+  const title = isSeries && "seriesTitle" in content 
+    ? content.seriesTitle 
+    : "title" in content 
+      ? content.title 
+      : "Sem título";
+  const category = content.category || "Sem categoria";
 
   return (
     <div
@@ -164,12 +175,13 @@ function SortableItem({ item, content, onRemove }: SortableItemProps) {
         </button>
         <div className="font-medium truncate mb-2 text-gray-900 text-sm pl-4">
           {item.contentType === "video" && "🎥"}
+          {item.contentType === "series" && "📺"}
           {item.contentType === "game" && "🎮"}
           {item.contentType === "activity" && "📚"}
-          {" " + content.title}
+          {" " + title}
         </div>
         <div className="text-gray-500 truncate pl-4">
-          {content.category || "Sem categoria"}
+          {category}
         </div>
       </div>
     </div>
@@ -205,6 +217,7 @@ export function GridRowManager({
 
   // Content cache
   const [allContent, setAllContent] = useState<AnyContent[]>([]);
+  const [allSeries, setAllSeries] = useState<VideoSeries[]>([]);
 
   // Drag and Drop sensors
   const sensors = useSensors(
@@ -298,10 +311,11 @@ export function GridRowManager({
 
   const loadAllContent = async () => {
     try {
-      const [videos, games, activities] = await Promise.all([
+      const [videos, games, activities, series] = await Promise.all([
         videoService.getAll(),
         gameService.getAll(),
         activityService.getAll(),
+        videoService.getAllSeries(),
       ]);
 
       const allContentItems: AnyContent[] = [
@@ -311,6 +325,7 @@ export function GridRowManager({
       ];
 
       setAllContent(allContentItems);
+      setAllSeries(series);
     } catch (error) {
       console.error("Error loading content:", error);
     }
@@ -414,7 +429,12 @@ export function GridRowManager({
   const getContentById = (
     contentId: string,
     contentType: ContentType
-  ): AnyContent | null => {
+  ): AnyContent | VideoSeries | null => {
+    // Para séries, buscar na lista de séries
+    if (contentType === "series") {
+      return allSeries.find((s) => s.seriesId === contentId) || null;
+    }
+
     return (
       allContent.find((content) => {
         if (content.id !== contentId) return false;
@@ -471,6 +491,7 @@ export function GridRowManager({
       contentId,
       contentType,
       order: editingRow.items.length,
+      isSeries: contentType === "series",
     };
 
     const maxItems = editingRow.maxItems || 20;
@@ -513,6 +534,14 @@ export function GridRowManager({
           const content = getContentById(item.contentId, item.contentType);
           if (!content) return null;
 
+          // Determinar título baseado no tipo
+          const isSeries = item.contentType === "series" || item.isSeries;
+          const title = isSeries && "seriesTitle" in content 
+            ? content.seriesTitle 
+            : "title" in content 
+              ? content.title 
+              : "Sem título";
+
           return (
             <div
               key={item.id}
@@ -520,9 +549,10 @@ export function GridRowManager({
             >
               <div className="font-medium truncate mb-2 text-gray-900 text-sm">
                 {item.contentType === "video" && "🎥"}
+                {item.contentType === "series" && "📺"}
                 {item.contentType === "game" && "🎮"}
                 {item.contentType === "activity" && "📚"}
-                {" " + content.title}
+                {" " + title}
               </div>
               <div className="text-gray-500 truncate">
                 {content.category || "Sem categoria"}
@@ -651,6 +681,7 @@ export function GridRowManager({
                       >
                         <option value="mixed">🎯 Conteúdo Misto</option>
                         <option value="video">🎥 Apenas Vídeos</option>
+                        <option value="series">📺 Apenas Séries</option>
                         <option value="game">🎮 Apenas Jogos</option>
                         <option value="activity">📚 Apenas Atividades</option>
                       </select>
@@ -695,12 +726,14 @@ export function GridRowManager({
                     {newRowForm.contentType
                       ? `Esta lista aceitará apenas ${
                           newRowForm.contentType === "video"
-                            ? "vídeos"
+                            ? "vídeos individuais"
+                            : newRowForm.contentType === "series"
+                            ? "séries (estilo Netflix)"
                             : newRowForm.contentType === "game"
                             ? "jogos"
                             : "atividades"
                         }. Escolha "Conteúdo Misto" para permitir qualquer tipo.`
-                      : "Esta lista poderá conter vídeos, jogos e atividades misturados."}
+                      : "Esta lista poderá conter vídeos, séries, jogos e atividades misturados."}
                   </div>
                   <Button
                     onClick={handleCreateRow}
@@ -809,6 +842,7 @@ export function GridRowManager({
                       Esta linha aceita apenas:
                       <span className=" text-blue-700 text-sm font-medium m-1">
                         {editingRow.contentType === "video" && "Vídeos"}
+                        {editingRow.contentType === "series" && "Séries"}
                         {editingRow.contentType === "game" && "Jogos"}
                         {editingRow.contentType === "activity" && "Atividades"}
                       </span>
@@ -831,6 +865,16 @@ export function GridRowManager({
                         }`}
                       >
                         🎥 Vídeos
+                      </button>
+                      <button
+                        onClick={() => setSelectedContentType("series")}
+                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                          selectedContentType === "series"
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        📺 Séries
                       </button>
                       <button
                         onClick={() => setSelectedContentType("game")}
@@ -866,50 +910,78 @@ export function GridRowManager({
                     {editingRow?.contentType || selectedContentType})
                   </h4>
                   <div className="grid grid-cols-1 gap-2">
-                    {allContent
-                      .filter((content) => {
-                        // Se a linha tem tipo específico, mostrar apenas esse tipo
-                        const targetType =
-                          editingRow?.contentType || selectedContentType;
-
-                        if (
-                          targetType === "video" &&
-                          "url" in content &&
-                          !("plays" in content) &&
-                          !("completions" in content)
-                        ) {
-                          return true;
-                        }
-                        if (targetType === "game" && "plays" in content) {
-                          return true;
-                        }
-                        if (
-                          targetType === "activity" &&
-                          "completions" in content
-                        ) {
-                          return true;
-                        }
-                        return false;
-                      })
-                      .map((content) => (
+                    {/* Mostrar séries quando tipo for "series" */}
+                    {(editingRow?.contentType === "series" || selectedContentType === "series") && (
+                      allSeries.map((series) => (
                         <div
-                          key={content.id}
+                          key={series.seriesId}
                           className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
                           onClick={() =>
                             handleAddContentToRow(
-                              content.id,
-                              editingRow?.contentType || selectedContentType
+                              series.seriesId,
+                              "series"
                             )
                           }
                         >
-                          <div className="font-medium text-gray-800 ">
-                            {content.title}
+                          <div className="font-medium text-gray-800 flex items-center gap-2">
+                            📺 {series.seriesTitle}
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                              Série
+                            </span>
                           </div>
                           <div className="text-sm text-gray-500">
-                            {content.category}
+                            {series.totalEpisodes} episódios • {series.category}
                           </div>
                         </div>
-                      ))}
+                      ))
+                    )}
+                    {/* Mostrar outros conteúdos quando tipo NÃO for "series" */}
+                    {(editingRow?.contentType !== "series" && selectedContentType !== "series") && (
+                      allContent
+                        .filter((content) => {
+                          // Se a linha tem tipo específico, mostrar apenas esse tipo
+                          const targetType =
+                            editingRow?.contentType || selectedContentType;
+
+                          if (
+                            targetType === "video" &&
+                            "url" in content &&
+                            !("plays" in content) &&
+                            !("completions" in content)
+                          ) {
+                            return true;
+                          }
+                          if (targetType === "game" && "plays" in content) {
+                            return true;
+                          }
+                          if (
+                            targetType === "activity" &&
+                            "completions" in content
+                          ) {
+                            return true;
+                          }
+                          return false;
+                        })
+                        .map((content) => (
+                          <div
+                            key={content.id}
+                            className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                            onClick={() =>
+                              handleAddContentToRow(
+                                content.id,
+                                editingRow?.contentType || selectedContentType
+                              )
+                            }
+                          >
+                            <div className="font-medium text-gray-800 ">
+                              {content.title}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {content.category}
+                            </div>
+                          </div>
+                        ))
+                    )}
                   </div>
                 </div>
 

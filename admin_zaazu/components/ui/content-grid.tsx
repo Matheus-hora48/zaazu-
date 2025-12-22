@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { Search, Filter, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { AnyContent, ContentType } from "@/lib/types";
+import { AnyContent, ContentType, Video, VideoSeries } from "@/lib/types";
+import { videoService } from "@/lib/services";
 
 interface ContentGridProps {
   contentType: ContentType;
@@ -15,6 +16,20 @@ interface ContentGridProps {
   getAllContent: () => Promise<AnyContent[]>;
 }
 
+// Tipo unificado para exibição no grid
+type DisplayItem = {
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail: string;
+  category: string;
+  minAge: number;
+  tag: string;
+  isActive: boolean;
+  isSeries?: boolean; // Flag para identificar séries
+  totalEpisodes?: number; // Para séries
+};
+
 export function ContentGrid({
   contentType,
   selectedItems,
@@ -23,11 +38,12 @@ export function ContentGrid({
   maxSelection = 20,
   getAllContent,
 }: ContentGridProps) {
-  const [content, setContent] = useState<AnyContent[]>([]);
-  const [filteredContent, setFilteredContent] = useState<AnyContent[]>([]);
+  const [content, setContent] = useState<DisplayItem[]>([]);
+  const [filteredContent, setFilteredContent] = useState<DisplayItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
+  const [videoTypeFilter, setVideoTypeFilter] = useState<"all" | "series" | "individual">("all"); // Filtro para séries/individuais
   const [loading, setLoading] = useState(true);
   const [, setForceUpdate] = useState(0);
 
@@ -47,10 +63,93 @@ export function ContentGrid({
     setLoading(true);
     try {
       const allContent = await getAllContent();
-      const typeFilteredContent = allContent.filter(
-        (item) => getContentType(item) === contentType
-      );
-      setContent(typeFilteredContent);
+      
+      // Se for tipo "series", mostrar apenas séries
+      if (contentType === "series") {
+        const displayItems: DisplayItem[] = [];
+        
+        // Buscar apenas séries agrupadas
+        const series = await videoService.getAllSeries();
+        series.forEach((s: VideoSeries) => {
+          displayItems.push({
+            id: s.seriesId, // ID da série para seleção
+            title: s.seriesTitle,
+            description: `${s.totalEpisodes} episódios`,
+            thumbnail: s.thumbnail,
+            category: s.category,
+            minAge: s.minAge,
+            tag: s.tag,
+            isActive: true,
+            isSeries: true,
+            totalEpisodes: s.totalEpisodes,
+          });
+        });
+
+        setContent(displayItems);
+      }
+      // Se for vídeo, precisamos agrupar séries E vídeos avulsos
+      else if (contentType === "video") {
+        const displayItems: DisplayItem[] = [];
+        
+        // Buscar séries agrupadas
+        const series = await videoService.getAllSeries();
+        series.forEach((s: VideoSeries) => {
+          displayItems.push({
+            id: s.seriesId, // ID da série para seleção
+            title: s.seriesTitle,
+            description: `${s.totalEpisodes} episódios`,
+            thumbnail: s.thumbnail,
+            category: s.category,
+            minAge: s.minAge,
+            tag: s.tag,
+            isActive: true,
+            isSeries: true,
+            totalEpisodes: s.totalEpisodes,
+          });
+        });
+
+        // Buscar vídeos avulsos (sem seriesId)
+        const videos = allContent.filter(
+          (item) => getContentType(item) === "video"
+        ) as Video[];
+        
+        videos.forEach((video: Video) => {
+          if (!video.seriesId) {
+            displayItems.push({
+              id: video.id,
+              title: video.title,
+              description: video.description,
+              thumbnail: video.thumbnail,
+              category: video.category,
+              minAge: video.minAge,
+              tag: video.tag,
+              isActive: video.isActive,
+              isSeries: false,
+            });
+          }
+        });
+
+        setContent(displayItems);
+      } else {
+        // Para jogos e atividades, manter lógica original
+        const typeFilteredContent = allContent.filter(
+          (item) => getContentType(item) === contentType
+        );
+        
+        const displayItems: DisplayItem[] = typeFilteredContent.map((item) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          thumbnail: item.thumbnail,
+          category: item.category,
+          minAge: item.minAge,
+          tag: item.tag,
+          isActive: item.isActive,
+          isSeries: false,
+        }));
+        
+        setContent(displayItems);
+      }
     } catch (error) {
       console.error("Error loading content:", error);
     } finally {
@@ -66,7 +165,7 @@ export function ContentGrid({
       filtered = filtered.filter(
         (item) =>
           item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (item.tag &&
             item.tag.toLowerCase().includes(searchTerm.toLowerCase())
           )
@@ -83,11 +182,20 @@ export function ContentGrid({
       filtered = filtered.filter((item) => item.minAge === parseInt(selectedAgeGroup));
     }
 
+    // Filter by video type (series vs individual) - only for videos
+    if (contentType === "video" && videoTypeFilter !== "all") {
+      if (videoTypeFilter === "series") {
+        filtered = filtered.filter((item) => item.isSeries === true);
+      } else if (videoTypeFilter === "individual") {
+        filtered = filtered.filter((item) => item.isSeries === false);
+      }
+    }
+
     // Filter only active content
     filtered = filtered.filter((item) => item.isActive);
 
     setFilteredContent(filtered);
-  }, [content, searchTerm, selectedCategory, selectedAgeGroup]);
+  }, [content, searchTerm, selectedCategory, selectedAgeGroup, videoTypeFilter, contentType]);
 
   useEffect(() => {
     loadContent();
@@ -114,7 +222,7 @@ export function ContentGrid({
 
   const canSelect = () => selectedItems.length < maxSelection;
 
-  const handleItemClick = (item: AnyContent) => {
+  const handleItemClick = (item: DisplayItem) => {
     if (isSelected(item.id)) {
       onItemDeselect(item.id);
     } else if (canSelect()) {
@@ -160,6 +268,48 @@ export function ContentGrid({
 
   return (
     <div className="space-y-4">
+      {/* Filtro de tipo de vídeo (Série vs Individual) - apenas para vídeos */}
+      {contentType === "video" && (
+        <div className="flex gap-2 p-2 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200">
+          <button
+            onClick={() => setVideoTypeFilter("all")}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+              videoTypeFilter === "all"
+                ? "bg-purple-600 text-white shadow-md"
+                : "bg-white text-gray-700 hover:bg-purple-100 border border-gray-200"
+            }`}
+          >
+            📺 Todos
+          </button>
+          <button
+            onClick={() => setVideoTypeFilter("series")}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
+              videoTypeFilter === "series"
+                ? "bg-purple-600 text-white shadow-md"
+                : "bg-white text-gray-700 hover:bg-purple-100 border border-gray-200"
+            }`}
+          >
+            📺 Apenas Séries
+            <span className="text-xs bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded-full">
+              {content.filter(c => c.isSeries).length}
+            </span>
+          </button>
+          <button
+            onClick={() => setVideoTypeFilter("individual")}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
+              videoTypeFilter === "individual"
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-white text-gray-700 hover:bg-blue-100 border border-gray-200"
+            }`}
+          >
+            🎥 Vídeos Avulsos
+            <span className="text-xs bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded-full">
+              {content.filter(c => !c.isSeries).length}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
         <div className="relative">
@@ -243,6 +393,21 @@ export function ContentGrid({
                 }}
               />
 
+              {/* Badge de Série no canto superior direito */}
+              {item.isSeries && (
+                <div className="absolute top-1 right-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white text-xs px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 border border-white/20">
+                  <span>📺</span>
+                  <span className="font-bold">{item.totalEpisodes} episódios</span>
+                </div>
+              )}
+
+              {/* Badge de Vídeo Avulso */}
+              {!item.isSeries && contentType === "video" && (
+                <div className="absolute top-1 left-1 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded shadow">
+                  🎥 Vídeo
+                </div>
+              )}
+
               {isSelected(item.id) && (
                 <div className="absolute inset-0 bg-green-500 bg-opacity-30 flex items-center justify-center backdrop-blur-sm">
                   <div className="bg-green-600 text-white rounded-full p-2 shadow-lg border-2 border-white">
@@ -265,7 +430,12 @@ export function ContentGrid({
               <h4 className="font-medium text-sm text-gray-900 truncate mb-1">
                 {item.title}
               </h4>
-              <p className="text-xs text-gray-500 truncate">{item.category}</p>
+              <p className="text-xs text-gray-500 truncate">
+                {item.isSeries 
+                  ? `📺 ${item.totalEpisodes} episódios • ${item.category}`
+                  : `🎥 ${item.category}`
+                }
+              </p>
 
               {item.tag && (
                 <div className="flex flex-wrap gap-1 mt-1">

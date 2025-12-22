@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,9 +12,141 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Settings, Grid3x3, Power, PowerOff, Trash2, Plus } from "lucide-react";
-import { HomeGrid, GridTag } from "@/lib/types";
+import { HomeGrid, GridTag, VideoSeries, GridItem, Video, Game, Activity } from "@/lib/types";
 import { gridService } from "@/lib/grid-service";
 import { GridRowManager } from "@/components/modals/grid-row-manager";
+import { videoService, gameService, activityService } from "@/lib/services";
+
+type ContentData = {
+  title: string;
+  thumbnail: string;
+  isSeries: boolean;
+  episodeCount?: number;
+};
+
+// Componente para preview de item do grid com thumbnail
+function GridItemPreview({ item, allSeries }: { item: GridItem; allSeries: VideoSeries[] }) {
+  const [contentData, setContentData] = useState<ContentData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        // Se for série
+        if (item.isSeries && item.contentType === "video") {
+          const series = allSeries.find(s => s.seriesId === item.contentId);
+          if (series) {
+            setContentData({
+              title: series.seriesTitle,
+              thumbnail: series.thumbnail,
+              isSeries: true,
+              episodeCount: series.totalEpisodes,
+            });
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Buscar conteúdo normal
+        if (item.contentType === "video") {
+          const videos = await videoService.getAll();
+          const video = videos.find((v: Video) => v.id === item.contentId);
+          if (video) {
+            setContentData({
+              title: video.title,
+              thumbnail: video.thumbnail,
+              isSeries: false,
+            });
+          }
+        } else if (item.contentType === "game") {
+          const games = await gameService.getAll();
+          const game = games.find((g: Game) => g.id === item.contentId);
+          if (game) {
+            setContentData({
+              title: game.title,
+              thumbnail: game.thumbnail,
+              isSeries: false,
+            });
+          }
+        } else if (item.contentType === "activity") {
+          const activities = await activityService.getAll();
+          const activity = activities.find((a: Activity) => a.id === item.contentId);
+          if (activity) {
+            setContentData({
+              title: activity.title,
+              thumbnail: activity.thumbnail,
+              isSeries: false,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching content:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, [item, allSeries]);
+
+  if (loading) {
+    return (
+      <div className="aspect-video bg-gray-100 rounded-md animate-pulse" />
+    );
+  }
+
+  if (!contentData) {
+    return (
+      <div className="aspect-video bg-gray-100 rounded-md flex items-center justify-center">
+        <span className="text-xs text-gray-400">?</span>
+      </div>
+    );
+  }
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case "video": return "🎥";
+      case "game": return "🎮";
+      case "activity": return "📚";
+      default: return "📄";
+    }
+  };
+
+  return (
+    <div className="relative aspect-video bg-gray-900 rounded-md overflow-hidden group">
+      <Image
+        src={contentData.thumbnail || "/placeholder-image.jpg"}
+        alt={contentData.title}
+        fill
+        className="object-cover"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = "/placeholder-image.jpg";
+        }}
+      />
+      
+      {/* Overlay com informações */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute bottom-0 left-0 right-0 p-1">
+          <p className="text-white text-[10px] font-medium truncate">
+            {contentData.title}
+          </p>
+        </div>
+      </div>
+      
+      {/* Badge de tipo de conteúdo */}
+      <div className="absolute top-1 left-1 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded">
+        {contentData.isSeries ? "📺" : getTypeIcon(item.contentType)}
+      </div>
+
+      {/* Badge de série com contagem de episódios */}
+      {contentData.isSeries && (
+        <div className="absolute top-1 right-1 bg-purple-600 text-white text-[9px] px-1 py-0.5 rounded font-bold">
+          {contentData.episodeCount}ep
+        </div>
+      )}
+    </div>
+  );
+}
 
 function GridsContent() {
   const [grids, setGrids] = useState<HomeGrid[]>([]);
@@ -21,6 +154,7 @@ function GridsContent() {
   const [showGridManager, setShowGridManager] = useState(false);
   const [selectedGridId, setSelectedGridId] = useState<string | undefined>();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [allSeries, setAllSeries] = useState<VideoSeries[]>([]);
 
   useEffect(() => {
     const createDefaultGrids = async () => {
@@ -82,6 +216,10 @@ function GridsContent() {
     const loadData = async () => {
       setLoading(true);
       try {
+        // Carregar séries para visualização
+        const series = await videoService.getAllSeries();
+        setAllSeries(series);
+
         let gridsData = await gridService.getGrids();
 
         // Se não há grades, criar as padrão
@@ -398,28 +536,50 @@ function GridsContent() {
                   <div className="space-y-4">
                     {/* Preview das primeiras linhas */}
                     {grid.rows && grid.rows.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <h4 className="font-semibold text-gray-800 text-sm">
                           📋 Primeiras Linhas ({grid.rows.length} total):
                         </h4>
-                        {grid.rows.slice(0, 3).map((row) => (
+                        {grid.rows.slice(0, 2).map((row) => (
                           <div
                             key={row.id}
-                            className="bg-gray-50 p-2 rounded-lg flex items-center gap-3 border"
+                            className="bg-white p-3 rounded-lg border-2 border-gray-200"
                           >
-                            <span className="text-lg">📝</span>
-                            <span className="font-medium text-gray-800">
-                              {row.title}
-                            </span>
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium ml-auto">
-                              {row.items?.length || 0}{" "}
-                              {row.items?.length === 1 ? "item" : "itens"}
-                            </span>
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="text-lg">📝</span>
+                              <span className="font-medium text-gray-800 flex-1">
+                                {row.title}
+                              </span>
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
+                                {row.items?.length || 0}{" "}
+                                {row.items?.length === 1 ? "item" : "itens"}
+                              </span>
+                            </div>
+                            
+                            {/* Preview dos itens com thumbnails */}
+                            {row.items && row.items.length > 0 && (
+                              <div className="grid grid-cols-4 gap-2 mt-2">
+                                {row.items.slice(0, 4).map((item) => (
+                                  <GridItemPreview 
+                                    key={item.id}
+                                    item={item}
+                                    allSeries={allSeries}
+                                  />
+                                ))}
+                                {row.items.length > 4 && (
+                                  <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-md flex items-center justify-center border border-gray-300">
+                                    <span className="text-xs font-bold text-gray-600">
+                                      +{row.items.length - 4}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
-                        {grid.rows.length > 3 && (
+                        {grid.rows.length > 2 && (
                           <div className="text-center text-sm text-gray-500 italic">
-                            ... e mais {grid.rows.length - 3} linhas
+                            ... e mais {grid.rows.length - 2} linhas
                           </div>
                         )}
                       </div>

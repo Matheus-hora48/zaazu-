@@ -93,7 +93,7 @@ export interface UserProgress {
 }
 
 // Grid System Types
-export type ContentType = "video" | "game" | "activity";
+export type ContentType = "video" | "game" | "activity" | "series";
 export type GridTag = "entretenimento" | "atividade" | "educativo";
 
 export interface GridItem {
@@ -101,13 +101,14 @@ export interface GridItem {
   contentId: string;
   contentType: ContentType;
   order: number;
+  isSeries?: boolean; // Flag para identificar séries (true se contentId for seriesId)
 }
 
 export interface GridRow {
   id: string;
   title: string;
   description?: string;
-  contentType?: ContentType; // undefined = conteúdo misto, definido = só esse tipo
+  contentType?: ContentType; // undefined = conteúdo misto, "series" = apenas séries
   items: GridItem[];
   isActive: boolean;
   order: number;

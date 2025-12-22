@@ -17,6 +17,7 @@ import {
   GridItem,
   ContentType,
   AnyContent,
+  VideoSeries,
 } from "@/lib/types";
 import { gridService } from "@/lib/grid-service";
 import { videoService, gameService, activityService } from "@/lib/services";
@@ -51,6 +52,7 @@ export function GridRowManager({
 
   // Content cache
   const [allContent, setAllContent] = useState<AnyContent[]>([]);
+  const [allSeries, setAllSeries] = useState<VideoSeries[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -78,11 +80,14 @@ export function GridRowManager({
 
   const loadAllContent = async () => {
     try {
-      const [videos, games, activities] = await Promise.all([
+      const [videos, games, activities, series] = await Promise.all([
         videoService.getAll(),
         gameService.getAll(),
         activityService.getAll(),
+        videoService.getAllSeries(),
       ]);
+
+      setAllSeries(series);
 
       const allContentItems: AnyContent[] = [
         ...videos,
@@ -170,8 +175,15 @@ export function GridRowManager({
 
   const getContentById = (
     contentId: string,
-    contentType: ContentType
-  ): AnyContent | null => {
+    contentType: ContentType,
+    isSeries?: boolean
+  ): AnyContent | VideoSeries | null => {
+    // Se for uma série, buscar do cache de séries
+    if (isSeries && contentType === "video") {
+      return allSeries.find((s) => s.seriesId === contentId) || null;
+    }
+
+    // Busca normal para vídeos avulsos, jogos e atividades
     return (
       allContent.find((content) => {
         if (content.id !== contentId) return false;
@@ -197,20 +209,39 @@ export function GridRowManager({
     );
   };
 
-  const handleAddContentToRow = (
+  const handleAddContentToRow = async (
     contentId: string,
     contentType: ContentType
   ) => {
     if (!editingRow) return;
 
-    const contentToAdd = getContentById(contentId, contentType);
-    if (!contentToAdd) return;
+    // Verificar se já existe este item na linha
+    const alreadyExists = editingRow.items.some(
+      (item) => item.contentId === contentId
+    );
+    
+    if (alreadyExists) {
+      alert("Este conteúdo já foi adicionado a esta linha.");
+      return;
+    }
+
+    // Verificar se é uma série (quando contentType é video)
+    let isSeries = false;
+    if (contentType === "video") {
+      try {
+        const allSeries = await videoService.getAllSeries();
+        isSeries = allSeries.some((series) => series.seriesId === contentId);
+      } catch (error) {
+        console.error("Error checking if content is series:", error);
+      }
+    }
 
     const newItem: GridItem = {
       id: `${Date.now()}-${Math.random()}`,
       contentId,
       contentType,
       order: editingRow.items.length,
+      isSeries, // Marcar se é série
     };
 
     const maxItems = editingRow.maxItems || 20;
@@ -264,8 +295,11 @@ export function GridRowManager({
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {row.items.slice(0, 4).map((item) => {
-          const content = getContentById(item.contentId, item.contentType);
+          const content = getContentById(item.contentId, item.contentType, item.isSeries);
           if (!content) return null;
+
+          // Extrair título - VideoSeries usa seriesTitle
+          const title = 'seriesTitle' in content ? content.seriesTitle : content.title;
 
           return (
             <div
@@ -273,10 +307,10 @@ export function GridRowManager({
               className="bg-gray-50 p-2 rounded-lg border text-xs"
             >
               <div className="font-medium truncate">
-                {item.contentType === "video" && "🎥"}
+                {item.contentType === "video" && (item.isSeries ? "📺" : "🎥")}
                 {item.contentType === "game" && "🎮"}
                 {item.contentType === "activity" && "📚"}
-                {" " + content.title}
+                {" " + title}
               </div>
               <div className="text-gray-500 truncate">
                 {content.category || "Sem categoria"}
@@ -551,8 +585,8 @@ export function GridRowManager({
                       onReorder={handleReorderRowItems}
                       onRemove={handleRemoveContentFromRow}
                       onRandomize={() => {}}
-                      getContentById={(id: string, type: string) => 
-                        getContentById(id, type as ContentType)
+                      getContentById={(id: string, type: string, isSeries?: boolean) => 
+                        getContentById(id, type as ContentType, isSeries)
                       }
                     />
                   ) : (
