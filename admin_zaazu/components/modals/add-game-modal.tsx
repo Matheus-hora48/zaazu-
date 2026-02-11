@@ -67,7 +67,8 @@ export function AddGameModal({
 
       // Upload da thumbnail se fornecida
       if (thumbnailFile) {
-        await gameService.uploadThumbnail(gameId, thumbnailFile);
+        const thumbnailUrl = await gameService.uploadThumbnail(gameId, thumbnailFile);
+        await gameService.update(gameId, { thumbnail: thumbnailUrl });
       }
 
       // Log da criação do jogo

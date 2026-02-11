@@ -70,7 +70,8 @@ export function AddActivityModal({
 
       // Upload da thumbnail se fornecida
       if (thumbnailFile) {
-        await activityService.uploadThumbnail(activityId, thumbnailFile);
+        const thumbnailUrl = await activityService.uploadThumbnail(activityId, thumbnailFile);
+        await activityService.update(activityId, { thumbnail: thumbnailUrl });
       }
 
       // Reset form

@@ -85,7 +85,8 @@ export function EditActivityModal({
 
       // Upload da thumbnail se fornecida
       if (thumbnailFile) {
-        await activityService.uploadThumbnail(activity.id, thumbnailFile);
+        const thumbnailUrl = await activityService.uploadThumbnail(activity.id, thumbnailFile);
+        await activityService.update(activity.id, { thumbnail: thumbnailUrl });
       }
 
       onSuccess();

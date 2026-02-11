@@ -95,7 +95,8 @@ export function EditGameModal({
 
       // Upload new thumbnail if provided
       if (thumbnailFile) {
-        await gameService.uploadThumbnail(game.id, thumbnailFile);
+        const thumbnailUrl = await gameService.uploadThumbnail(game.id, thumbnailFile);
+        await gameService.update(game.id, { thumbnail: thumbnailUrl });
       }
 
       // Log da atualização
