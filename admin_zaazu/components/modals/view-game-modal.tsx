@@ -170,6 +170,22 @@ export function ViewGameModal({ isOpen, onClose, game }: ViewGameModalProps) {
 
               <div>
                 <label className="text-sm font-medium text-gray-800">
+                  Orientação da Tela
+                </label>
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg">
+                    {(game.orientation || "vertical") === "vertical" ? "📱" : "📺"}
+                  </span>
+                  <p className="text-gray-900 capitalize">
+                    {(game.orientation || "vertical") === "vertical"
+                      ? "Vertical (Retrato)"
+                      : "Horizontal (Paisagem)"}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-800">
                   Data de Criação
                 </label>
                 <div className="flex items-center space-x-2">

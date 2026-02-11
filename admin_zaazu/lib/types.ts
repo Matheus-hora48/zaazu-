@@ -55,6 +55,7 @@ export interface Game {
   minAge: number; // Idade mínima (2-9 anos)
   plays: number;
   type: "html5" | "embed";
+  orientation: "vertical" | "horizontal";
   tag: ContentTag; // Tag fixa do sistema
   createdAt: Date;
   updatedAt: Date;

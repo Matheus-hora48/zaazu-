@@ -36,6 +36,7 @@ export function AddGameModal({
     category: "",
     minAge: 2,
     type: "html5" as "html5" | "embed",
+    orientation: "vertical" as "vertical" | "horizontal",
     thumbnail: "",
     isActive: true,
     tag: "entretenimento" as ContentTag,
@@ -57,6 +58,7 @@ export function AddGameModal({
         category: formData.category,
         minAge: formData.minAge,
         type: formData.type,
+        orientation: formData.orientation,
         thumbnail: "", // Will be updated after upload
         isActive: formData.isActive,
         tag: formData.tag,
@@ -74,6 +76,7 @@ export function AddGameModal({
       // Log da criação do jogo
       await logCreate("game", formData.title, gameId, {
         gameType: formData.type,
+        gameOrientation: formData.orientation,
         gameCategory: formData.category,
         minAge: formData.minAge,
         gameUrl: formData.url,
@@ -92,6 +95,7 @@ export function AddGameModal({
         category: "",
         minAge: 2,
         type: "html5",
+        orientation: "vertical" as "vertical" | "horizontal",
         thumbnail: "",
         isActive: true,
         tag: "entretenimento" as ContentTag,
@@ -224,7 +228,7 @@ export function AddGameModal({
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-800 mb-1">
                     Tipo de Jogo
@@ -238,6 +242,22 @@ export function AddGameModal({
                   >
                     <option value="html5">HTML5</option>
                     <option value="embed">Embed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1">
+                    Orientação da Tela
+                  </label>
+                  <select
+                    name="orientation"
+                    value={formData.orientation}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border text-gray-600 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  >
+                    <option value="vertical">📱 Vertical (Retrato)</option>
+                    <option value="horizontal">📺 Horizontal (Paisagem)</option>
                   </select>
                 </div>
               </div>

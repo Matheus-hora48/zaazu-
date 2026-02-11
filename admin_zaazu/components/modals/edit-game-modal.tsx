@@ -38,6 +38,7 @@ export function EditGameModal({
     category: "",
     minAge: 2,
     type: "html5" as "html5" | "embed",
+    orientation: "vertical" as "vertical" | "horizontal",
     tag: "entretenimento" as ContentTag,
   });
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -53,6 +54,7 @@ export function EditGameModal({
         category: game.category,
         minAge: game.minAge || 2,
         type: game.type,
+        orientation: game.orientation || "vertical",
         tag: game.tag || "entretenimento",
       });
     }
@@ -87,6 +89,9 @@ export function EditGameModal({
     }
     if (formData.type !== game.type) {
       changes.type = { old: game.type, new: formData.type };
+    }
+    if (formData.orientation !== (game.orientation || "vertical")) {
+      changes.orientation = { old: game.orientation || "vertical", new: formData.orientation };
     }
 
     try {
@@ -236,6 +241,26 @@ export function EditGameModal({
                 >
                   <option value="html5">HTML5</option>
                   <option value="embed">Embed</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm text-gray-800 font-medium">
+                  Orientação da Tela
+                </label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm text-gray-600 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={formData.orientation}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      orientation: e.target.value as "vertical" | "horizontal",
+                    })
+                  }
+                  required
+                >
+                  <option value="vertical">📱 Vertical (Retrato)</option>
+                  <option value="horizontal">📺 Horizontal (Paisagem)</option>
                 </select>
               </div>
 
